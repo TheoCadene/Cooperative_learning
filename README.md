@@ -138,7 +138,7 @@ Les scripts utilisent les mêmes notations que le cours : noyau \(k(x,x')=\exp(-
 
 **Algorithmes comparés :** DGD, Gradient Tracking, Dual Decomposition, ADMM (`\beta` fixé à `0.05` dans la comparaison principale ; courbe supplémentaire pour plusieurs \(\beta\)).
 
-**Visualisation :** reconstruction de la fonction apprise (agent 1 vs centralisé) sur une grille.
+**Visualisation :** reconstruction de la fonction apprise (agent 1 vs centralisé) sur une grille (`part1_reconstruction.pdf`).
 
 ---
 
