@@ -76,10 +76,11 @@ def make_synthetic_second_database(n_agents=5, points_per_agent=20, m=10, seed=0
     return X, Y
 
 
-def savefig_pdf(name, fig=None):
+def savefig_pdf(name, fig=None, tight_layout=True):
     if fig is None:
         fig = plt.gcf()
-    fig.tight_layout()
+    if tight_layout:
+        fig.tight_layout()
     out = os.path.join(os.path.dirname(__file__), "figures", name)
     os.makedirs(os.path.dirname(out), exist_ok=True)
     fig.savefig(out, format="pdf")

@@ -201,7 +201,12 @@ def track_metrics_loop(prob, W_or_A, mode, max_iter, step, rng=None, **extra):
         else:
             raise ValueError(mode)
 
-        cons.append(prob.consensus_error(state))
+        ce = prob.consensus_error(state)
+        # Push-sum: at t=0 all z_i = 0 / w_i = 0 — consensus is trivially exact but
+        # not meaningful; plotting ~1e-16 on a log axis then a jump looks broken.
+        if mode == "push_sum" and k == 0:
+            ce = np.nan
+        cons.append(ce)
         gsum.append(prob.grad_sum_norm(state))
         if alpha_star is not None:
             gaps.append(

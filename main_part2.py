@@ -9,6 +9,70 @@ from scaffold import run_scaffold
 from utils import load_second_database, make_synthetic_second_database, savefig_pdf
 
 
+def plot_fedavg_scaffold_comparison(
+    prob,
+    alpha_star,
+    fname,
+    clients_participate,
+    rounds_sc=10000,
+    lr_sc=0.002,
+    seed=42,
+):
+    """
+    Side-by-side FedAvg vs SCAFFOLD, same E curves and colors; optional partial C clients/round.
+    """
+    C = prob.num_agents
+    c_label = clients_participate if clients_participate is not None else C
+    fig4, (ax_fa, ax_sc) = plt.subplots(
+        1, 2, figsize=(11, 4.5), sharey=True, constrained_layout=True
+    )
+    for i, E in enumerate([1, 5, 50]):
+        c = f"C{i}"
+        _, gap_f = run_fedavg(
+            prob,
+            rounds=rounds_sc,
+            E=E,
+            B=20,
+            lr=lr_sc,
+            seed=seed,
+            track_star=alpha_star,
+            clients_participate=clients_participate,
+        )
+        _, gap_s = run_scaffold(
+            prob,
+            rounds=rounds_sc,
+            E=E,
+            B=20,
+            lr=lr_sc,
+            seed=seed,
+            track_star=alpha_star,
+            clients_participate=clients_participate,
+        )
+        it = np.arange(1, len(gap_f) + 1)
+        gap_f_plot = np.maximum(gap_f, 0.0)
+        gap_s_plot = np.maximum(gap_s, 0.0)
+        ax_fa.loglog(it, np.maximum(gap_f_plot, 1e-16), color=c, label=rf"$E={E}$")
+        ax_sc.loglog(it, np.maximum(gap_s_plot, 1e-16), color=c, label=rf"$E={E}$")
+    ax_fa.set_xlabel("Server round $t$")
+    ax_sc.set_xlabel("Server round $t$")
+    ax_fa.set_ylabel(r"$F(\alpha^t) - F(\alpha^\star)$")
+    ax_fa.set_title("FedAvg")
+    ax_sc.set_title("SCAFFOLD")
+    ax_fa.legend(fontsize=9)
+    ax_sc.legend(fontsize=9)
+    ax_fa.grid(True, which="both", ls="--", alpha=0.5)
+    ax_sc.grid(True, which="both", ls="--", alpha=0.5)
+    y_floor = 1e-12
+    for ax in (ax_fa, ax_sc):
+        lo, hi = ax.get_ylim()
+        ax.set_ylim(max(lo, y_floor), hi)
+    fig4.suptitle(
+        rf"$B=20$, lr$={lr_sc}$, $C={c_label}$ clients/round; "
+        r"same colors for $E\in\{1,5,50\}$ (non-IID shards)"
+    )
+    savefig_pdf(fname, fig4, tight_layout=False)
+
+
 def main():
     np.random.seed(42)
     X, Y = load_second_database()
@@ -131,45 +195,19 @@ def main():
     ax3e.grid(True, which="both", ls="--", alpha=0.5)
     savefig_pdf("part2_fedavg_partial_E.pdf", fig3e)
 
-    # SCAFFOLD vs FedAvg (non-IID across 20-point groups in second_database)
-    rounds_sc = 2000
-    lr_sc = 0.002
-    fig4, ax4 = plt.subplots(figsize=(7, 5))
-    for E in [1, 5, 20]:
-        _, gap_f = run_fedavg(
-            prob,
-            rounds=rounds_sc,
-            E=E,
-            B=20,
-            lr=lr_sc,
-            seed=42,
-            track_star=alpha_star,
-        )
-        _, gap_s = run_scaffold(
-            prob,
-            rounds=rounds_sc,
-            E=E,
-            B=20,
-            lr=lr_sc,
-            seed=42,
-            track_star=alpha_star,
-        )
-        it = np.arange(1, len(gap_f) + 1)
-        ax4.loglog(it, np.maximum(gap_f, 1e-16), label=rf"FedAvg $E={E}$")
-        ax4.loglog(
-            it,
-            np.maximum(gap_s, 1e-16),
-            linestyle="--",
-            label=rf"SCAFFOLD $E={E}$",
-        )
-    ax4.set_xlabel("Server round $t$")
-    ax4.set_ylabel(r"$F(\alpha^t) - F(\alpha^\star)$")
-    ax4.set_title(
-        r"FedAvg vs.\ SCAFFOLD ($B=20$, lr$=0.002$); control variates reduce client drift"
+    # SCAFFOLD vs FedAvg: full participation (C = 5) and partial (C = 3)
+    plot_fedavg_scaffold_comparison(
+        prob,
+        alpha_star,
+        "part2_scaffold.pdf",
+        clients_participate=5,
     )
-    ax4.legend(fontsize=8, ncol=2)
-    ax4.grid(True, which="both", ls="--", alpha=0.5)
-    savefig_pdf("part2_scaffold.pdf", fig4)
+    plot_fedavg_scaffold_comparison(
+        prob,
+        alpha_star,
+        "part2_scaffold_C3.pdf",
+        clients_participate=3,
+    )
 
     print("Part II figures saved.")
 

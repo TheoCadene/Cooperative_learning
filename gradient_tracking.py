@@ -2,7 +2,9 @@
 import numpy as np
 
 
-def run_gradient_tracking(prob, W, alpha0=None, max_iter=5000, step=None, track_gap=None):
+def run_gradient_tracking(
+    prob, W, alpha0=None, max_iter=5000, step=None, track_gap=None, snapshot_iters=None
+):
     n_agents = prob.num_agents
     m = prob.m
     if alpha0 is None:
@@ -16,6 +18,8 @@ def run_gradient_tracking(prob, W, alpha0=None, max_iter=5000, step=None, track_
         # Th. 2.2: small enough alpha; often smaller than DGD constant
         step = 0.1 / L
     gaps = []
+    want_snap = set(snapshot_iters) if snapshot_iters is not None else set()
+    snapshots = {} if snapshot_iters is not None else None
     for k in range(max_iter):
         alpha_new = W @ alpha - step * g
         grad_new = np.stack(
@@ -28,4 +32,6 @@ def run_gradient_tracking(prob, W, alpha0=None, max_iter=5000, step=None, track_
             gaps.append(
                 np.linalg.norm(alpha - track_gap[np.newaxis, :], axis=1).max()
             )
-    return alpha, np.array(gaps), step
+        if want_snap and (k + 1) in want_snap:
+            snapshots[k + 1] = alpha.copy()
+    return alpha, np.array(gaps), step, snapshots
